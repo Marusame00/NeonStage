@@ -23,6 +23,7 @@ import { Section } from '../../ui/Section';
 import { Slider } from '../../ui/Slider';
 import { Toggle } from '../../ui/Toggle';
 import { FieldControl } from './FieldControl';
+import { ObsPlacementSection } from './ObsPlacementSection';
 import { SceneSettings } from './SceneSettings';
 import { StyleSections } from './StyleSections';
 
@@ -49,10 +50,22 @@ export function Inspector(): ReactNode {
   if (nodes.length === 0) return <SceneSettings />;
   if (nodes.length > 1) return <MultiInspector nodes={nodes} />;
   const node = nodes[0]!;
-  return node.type === 'group' ? <GroupInspector node={node} /> : <WidgetInspector node={node} />;
+  return node.type === 'group' ? (
+    <GroupInspector node={node} sceneWidth={scene.width} sceneHeight={scene.height} />
+  ) : (
+    <WidgetInspector node={node} sceneWidth={scene.width} sceneHeight={scene.height} />
+  );
 }
 
-function WidgetInspector({ node }: { node: SceneNode }): ReactNode {
+function WidgetInspector({
+  node,
+  sceneWidth,
+  sceneHeight,
+}: {
+  node: SceneNode;
+  sceneWidth: number;
+  sceneHeight: number;
+}): ReactNode {
   const definition = node.widget ? getWidget(node.widget.kind) : undefined;
   const props = node.widget?.props ?? {};
   const [lockAspect, setLockAspect] = useState(false);
@@ -142,6 +155,8 @@ function WidgetInspector({ node }: { node: SceneNode }): ReactNode {
         </div>
       </Section>
 
+      <ObsPlacementSection node={node} sceneWidth={sceneWidth} sceneHeight={sceneHeight} />
+
       <Section title="Output" defaultOpen={false}>
         <NumberField
           label="Padding"
@@ -207,7 +222,15 @@ function WidgetInspector({ node }: { node: SceneNode }): ReactNode {
   );
 }
 
-function GroupInspector({ node }: { node: SceneNode }): ReactNode {
+function GroupInspector({
+  node,
+  sceneWidth,
+  sceneHeight,
+}: {
+  node: SceneNode;
+  sceneWidth: number;
+  sceneHeight: number;
+}): ReactNode {
   const setX = (value: number): void =>
     updateSceneDoc((scene) => moveNodes(scene, [node.id], value - node.x, 0), `${node.id}:x`);
   const setY = (value: number): void =>
@@ -282,6 +305,8 @@ function GroupInspector({ node }: { node: SceneNode }): ReactNode {
           Ungroup
         </Button>
       </Section>
+
+      <ObsPlacementSection node={node} sceneWidth={sceneWidth} sceneHeight={sceneHeight} />
     </>
   );
 }

@@ -19,8 +19,8 @@ Get the latest build from the [Releases page](https://github.com/Marusame00/Neon
 
 | File | Use it when |
 |---|---|
-| `NeonStage-1.1.0-Setup.exe` | You want a normal install with Start menu and desktop shortcuts. |
-| `NeonStage-1.1.0-Portable.exe` | You want a single exe that runs without installing (data still goes to `%APPDATA%\NeonStage`). |
+| `NeonStage-1.2.0-Setup.exe` | You want a normal install with Start menu and desktop shortcuts. |
+| `NeonStage-1.2.0-Portable.exe` | You want a single exe that runs without installing (data still goes to `%APPDATA%\NeonStage`). |
 
 The builds are not code-signed, so Windows SmartScreen may show "Windows protected your PC". Click
 **More info → Run anyway**.
@@ -39,7 +39,9 @@ The builds are not code-signed, so Windows SmartScreen may show "Windows protect
    every change immediately).
 5. Open **Settings (gear) → OBS output**, copy the URL (default `http://127.0.0.1:8790/output/live`).
 6. In OBS add a **Browser** source, paste the URL, set width 1920 and height 1080.
-7. Keep NeonStage running while you stream.
+7. To line up your Game Capture or webcam with a frame, select the frame and copy the values from
+   **OBS placement** in the Inspector into the source's **Edit Transform** dialog (Ctrl+E) in OBS.
+8. Keep NeonStage running while you stream.
 
 Details: [docs/OBS_SETUP.md](docs/OBS_SETUP.md) and [docs/PROVIDERS.md](docs/PROVIDERS.md).
 
@@ -69,7 +71,7 @@ launches Electron. `Start NeonStage.bat` in the repository root does the same th
 ## Tests
 
 ```bat
-npm test          :: Vitest unit and integration tests (171 tests in 20 files)
+npm test          :: Vitest unit and integration tests (180 tests in 21 files)
 npm run selftest  :: Electron end-to-end self-test (14 checks, exit code 0 only if all pass)
 ```
 

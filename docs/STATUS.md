@@ -12,6 +12,9 @@ the code in this repository and the runs listed under "Verified manually".
   group moves only when the group itself is selected (Layers panel). Marquee selects individual items.
 - Chat **Message area** insets move the message list inside the chat window (Inspector fields plus a
   dashed canvas box with handles).
+- Inspector **OBS placement** section: OBS Edit Transform values (position, bounding box size) for any
+  object or group, scaled to the OBS canvas resolution, with a Copy all button. Confirmed manually by
+  the user to line up a capture source exactly with a frame.
 - Preview/live documents with **Publish to OBS** and **Live edit**; program scene selection.
 - Shared renderer used by both the editor preview and the OBS output page.
 - Eleven widgets: text, shape, frame, timer, clock, goal, ticker, image, Twitch chat, YouTube chat,
@@ -34,11 +37,12 @@ the code in this repository and the runs listed under "Verified manually".
 
 ## Tested automatically
 
-`npm test` — 171 tests in 20 files, all passing:
+`npm test` — 180 tests in 21 files, all passing:
 
 | Area | Files | Tests |
 |---|---|---|
 | Shared model, ops, output, geometry, schema, migrations, templates, serialization | `ops`, `output`, `migrations`, `templates`, `serialization` | 67 |
+| OBS placement (Edit Transform values) | `obsPlacement` | 9 |
 | Shared chat, runtime, secret stripping | `chat`, `runtime`, `secrets` | 18 |
 | Main stores (atomic writes, secrets, project store) | `main-atomic`, `main-secrets`, `main-projectStore` | 11 |
 | Main runtime and providers manager | `main-appState`, `main-providers` | 8 |

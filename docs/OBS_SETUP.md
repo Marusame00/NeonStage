@@ -52,6 +52,12 @@ The **Frame** widget draws a border, corner brackets, a label and — in the edi
 placeholder that says `GAME CAPTURE AREA`. The interior is transparent in OBS. Put your real Game
 Capture or Video Capture source underneath the Browser Source and the frame sits on top of it.
 
+Select the frame (or any object) and open the **OBS placement** section in the Inspector. Enter your
+OBS Base (Canvas) Resolution, then copy the listed position and bounding-box size into the capture
+source's **Transform → Edit Transform** dialog (Ctrl+E) so the real source lines up with the frame.
+For frames, **Line up with** switches between the outer edge and the inside of the stroke, and the
+values include the letterbox offset whenever the scene and canvas aspect ratios differ.
+
 ## Front and background split
 
 A single Browser Source is one layer in OBS: everything inside it is either above or below your capture
