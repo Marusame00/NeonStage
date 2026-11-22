@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent as Re
 import { rectsIntersect, unionRects, type Rect } from '../../../shared/geometry';
 import type { ProjectDoc, Scene, SceneNode } from '../../../shared/model';
 import {
+  getAncestors,
   getRenderOrder,
   isEffectivelyLocked,
   isEffectivelyVisible,
@@ -29,6 +30,7 @@ import { WIDGET_MIME } from '../LibraryPanel';
 import { Guides } from './Guides';
 import { Marquee } from './Marquee';
 import { SelectionLayer, type ResizeHandle } from './SelectionLayer';
+import { MessageAreaLayer } from './MessageAreaLayer';
 import { CanvasToolbar } from './CanvasToolbar';
 
 const selectAll = (state: EditorState): EditorState => state;
@@ -36,7 +38,7 @@ const selectAll = (state: EditorState): EditorState => state;
 type Interaction =
   | { kind: 'pan'; startX: number; startY: number; panX: number; panY: number }
   | { kind: 'marquee'; start: { x: number; y: number }; additive: boolean }
-  | { kind: 'move'; start: { x: number; y: number }; base: ProjectDoc; ids: string[]; moved: boolean }
+  | { kind: 'move'; start: { x: number; y: number }; base: ProjectDoc; ids: string[]; moved: boolean; leaf: string | null }
   | {
       kind: 'resize';
       handle: ResizeHandle;
@@ -46,18 +48,19 @@ type Interaction =
       rect: Rect;
     };
 
-function topLevelId(scene: Scene, id: string, enteredGroupId: string | null): string | null {
-  let current = id;
-  for (let guard = 0; guard < 64; guard += 1) {
-    const node = scene.nodes[current];
-    if (!node) return null;
-    if (node.parentId === null || node.parentId === enteredGroupId) return current;
-    current = node.parentId;
+function selectedAncestorOr(scene: Scene, id: string, selection: readonly string[]): string {
+  const ancestors = getAncestors(scene, id);
+  for (let index = ancestors.length - 1; index >= 0; index -= 1) {
+    if (selection.includes(ancestors[index]!)) return ancestors[index]!;
   }
-  return current;
+  return id;
 }
 
-function hitTest(scene: Scene, point: { x: number; y: number }, enteredGroupId: string | null): string | null {
+function isWithin(scene: Scene, id: string, ids: readonly string[]): boolean {
+  return ids.includes(id) || getAncestors(scene, id).some((ancestorId) => ids.includes(ancestorId));
+}
+
+function hitTest(scene: Scene, point: { x: number; y: number }, selection: readonly string[]): string | null {
   const order = getRenderOrder(scene);
   for (let index = order.length - 1; index >= 0; index -= 1) {
     const id = order[index]!;
@@ -70,7 +73,7 @@ function hitTest(scene: Scene, point: { x: number; y: number }, enteredGroupId: 
       point.y >= node.y &&
       point.y <= node.y + node.h
     ) {
-      return topLevelId(scene, id, enteredGroupId);
+      return selectedAncestorOr(scene, id, selection);
     }
   }
   return null;
@@ -92,7 +95,7 @@ function minSizeOf(node: SceneNode): { w: number; h: number } {
 
 export function CanvasView(): ReactNode {
   const state = useEditor(selectAll);
-  const { doc, meta, zoom, pan, selection, enteredGroupId, outputPreview, prefs, server } = state;
+  const { doc, meta, zoom, pan, selection, outputPreview, prefs, server } = state;
   const scene = selectScene(state);
   const hostRef = useRef<HTMLDivElement>(null);
   const interaction = useRef<Interaction | null>(null);
@@ -205,12 +208,13 @@ export function CanvasView(): ReactNode {
     if (event.button !== 0) return;
 
     const point = toScene(event.clientX, event.clientY);
-    const hit = hitTest(scene, point, enteredGroupId);
+    const hit = hitTest(scene, point, store.getState().selection);
     event.currentTarget.setPointerCapture(event.pointerId);
 
     if (hit) {
+      const leaf = hitTest(scene, point, []);
       if (event.shiftKey || event.ctrlKey || event.metaKey) {
-        toggleSelected(hit);
+        toggleSelected(leaf ?? hit);
         return;
       }
       const current = store.getState();
@@ -223,6 +227,7 @@ export function CanvasView(): ReactNode {
         base: store.getState().doc,
         ids,
         moved: false,
+        leaf: leaf !== hit ? leaf : null,
       };
       return;
     }
@@ -240,7 +245,7 @@ export function CanvasView(): ReactNode {
     const active = interaction.current;
     if (!active) {
       const point = toScene(event.clientX, event.clientY);
-      setHovered(hitTest(scene, point, enteredGroupId));
+      setHovered(hitTest(scene, point, store.getState().selection));
       return;
     }
 
@@ -274,8 +279,8 @@ export function CanvasView(): ReactNode {
           .filter((node): node is SceneNode => node !== undefined),
       );
       if (prefs.editor.snap && moving) {
-        const others = baseScene.rootIds
-          .filter((id) => !active.ids.includes(id))
+        const others = getRenderOrder(baseScene)
+          .filter((id) => baseScene.nodes[id]?.type === 'widget' && !isWithin(baseScene, id, active.ids))
           .map((id) => baseScene.nodes[id])
           .filter((node): node is SceneNode => node !== undefined && isEffectivelyVisible(baseScene, node.id))
           .map((node) => ({ x: node.x, y: node.y, w: node.w, h: node.h }));
@@ -292,7 +297,7 @@ export function CanvasView(): ReactNode {
         setGuides([]);
       }
       dragDoc(withScene(active.base, scene.id, moveNodes(baseScene, active.ids, Math.round(dx), Math.round(dy))));
-      active.moved = true;
+      if (Math.hypot(point.x - active.start.x, point.y - active.start.y) * zoom > 3) active.moved = true;
       const first = baseScene.nodes[active.ids[0]!];
       if (first) {
         setTip({
@@ -325,6 +330,7 @@ export function CanvasView(): ReactNode {
     if (!active) return;
     if (active.kind === 'move') {
       endDrag();
+      if (!active.moved && active.leaf) setSelection([active.leaf]);
       return;
     }
     if (active.kind === 'resize') {
@@ -335,8 +341,8 @@ export function CanvasView(): ReactNode {
       const box = marquee;
       setMarquee(null);
       if (box.w < 2 && box.h < 2) return;
-      const hits = scene.rootIds
-        .filter((id) => (scene.nodes[id]?.parentId ?? null) === enteredGroupId)
+      const hits = getRenderOrder(scene)
+        .filter((id) => scene.nodes[id]?.type === 'widget')
         .filter((id) => isEffectivelyVisible(scene, id) && !isEffectivelyLocked(scene, id))
         .filter((id) => {
           const node = scene.nodes[id];
@@ -350,7 +356,7 @@ export function CanvasView(): ReactNode {
 
   const onDoubleClick = (event: ReactMouseEvent<HTMLDivElement>): void => {
     const point = toScene(event.clientX, event.clientY);
-    const hit = hitTest(scene, point, enteredGroupId);
+    const hit = hitTest(scene, point, store.getState().selection);
     if (!hit) return;
     const node = scene.nodes[hit];
     if (node?.type === 'group') {
@@ -435,6 +441,7 @@ export function CanvasView(): ReactNode {
           zoom={zoom}
           onHandlePointerDown={startResize}
         />
+        <MessageAreaLayer scene={scene} selection={selection} zoom={zoom} />
         <Guides guides={guides} width={scene.width} height={scene.height} />
         <Marquee rect={marquee} />
       </div>

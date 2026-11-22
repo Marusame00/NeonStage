@@ -73,6 +73,18 @@ describe('frame widget placeholders', () => {
   });
 });
 
+describe('node content box', () => {
+  it('sizes the chat list to the padded content box', () => {
+    const node = makeNode(
+      'chat-twitch',
+      { source: 'demo' },
+      { style: { ...defaultStyle(), padding: 12, borderWidth: 2 } },
+    );
+    const markup = renderNode(node, 'editor', createRenderStores());
+    expect(markup).toContain('width:372px;height:272px');
+  });
+});
+
 describe('chat rendering safety', () => {
   it('escapes markup and only renders allowlisted emotes as images', () => {
     const stores = createRenderStores();

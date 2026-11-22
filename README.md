@@ -19,8 +19,8 @@ Get the latest build from the [Releases page](https://github.com/Marusame00/Neon
 
 | File | Use it when |
 |---|---|
-| `NeonStage-1.0.0-Setup.exe` | You want a normal install with Start menu and desktop shortcuts. |
-| `NeonStage-1.0.0-Portable.exe` | You want a single exe that runs without installing (data still goes to `%APPDATA%\NeonStage`). |
+| `NeonStage-1.1.0-Setup.exe` | You want a normal install with Start menu and desktop shortcuts. |
+| `NeonStage-1.1.0-Portable.exe` | You want a single exe that runs without installing (data still goes to `%APPDATA%\NeonStage`). |
 
 The builds are not code-signed, so Windows SmartScreen may show "Windows protected your PC". Click
 **More info → Run anyway**.
@@ -28,7 +28,12 @@ The builds are not code-signed, so Windows SmartScreen may show "Windows protect
 ## Quick start
 
 1. Start NeonStage and pick a template or add widgets from the Library on the left.
-2. Arrange them on the canvas; the Inspector on the right edits the selected layer.
+   The default template has one Twitch chat; "Synthwave gameplay (Twitch + YouTube)" adds a hidden
+   YouTube chat you can switch on in Layers.
+2. Arrange them on the canvas; the Inspector on the right edits the selected layer. Clicking an item
+   inside a group selects and moves just that item; select the group in Layers to move the whole group.
+   A chat widget's dashed "Messages" box (or **Message area** in the Inspector) moves the text inside
+   the chat window.
 3. For Twitch chat, add a **Twitch chat** widget and type the channel name. No account needed.
 4. Click **Publish to OBS** to send your changes to the overlay (or turn on **Live edit** to publish
    every change immediately).
@@ -64,7 +69,7 @@ launches Electron. `Start NeonStage.bat` in the repository root does the same th
 ## Tests
 
 ```bat
-npm test          :: Vitest unit and integration tests (163 tests in 20 files)
+npm test          :: Vitest unit and integration tests (171 tests in 20 files)
 npm run selftest  :: Electron end-to-end self-test (14 checks, exit code 0 only if all pass)
 ```
 

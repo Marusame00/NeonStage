@@ -50,6 +50,12 @@ function NodeViewInner({ node }: { node: OutputNode }): ReactNode {
     [definition, widget],
   );
   const style = node.style ?? defaultStyle();
+  const caps = definition?.styleCapabilities ?? [];
+  const inset =
+    (caps.includes('padding') ? style.padding : 0) +
+    (caps.includes('border') && style.borderWidth > 0 ? style.borderWidth : 0);
+  const width = Math.max(0, node.w - 2 * inset);
+  const height = Math.max(0, node.h - 2 * inset);
 
   const containerStyle: StyleWithVars = {
     position: 'absolute',
@@ -62,8 +68,8 @@ function NodeViewInner({ node }: { node: OutputNode }): ReactNode {
     overflow: 'visible',
     contain: 'layout style',
     '--ns-speed': style.animationSpeed,
-    ...boxStyle(style, definition?.styleCapabilities ?? []),
-    ...textStyle(style, definition?.styleCapabilities ?? []),
+    ...boxStyle(style, caps),
+    ...textStyle(style, caps),
   };
 
   if (!definition || !Renderer || !props) {
@@ -84,8 +90,8 @@ function NodeViewInner({ node }: { node: OutputNode }): ReactNode {
         props={props}
         style={style}
         mode={mode}
-        width={node.w}
-        height={node.h}
+        width={width}
+        height={height}
       />
     </div>
   );

@@ -1067,6 +1067,41 @@
   pointer-events: auto;
 }
 
+.ns-msgarea-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 6;
+}
+
+.ns-msgarea-box {
+  position: absolute;
+  border: 1px dashed #22e6ff;
+  pointer-events: none;
+}
+
+.ns-msgarea-grip {
+  position: absolute;
+  border-radius: 3px;
+  background: #22e6ff;
+  color: #0c0a14;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: move;
+  user-select: none;
+  pointer-events: auto;
+}
+
+.ns-msgarea-handle {
+  position: absolute;
+  border: 1px solid #08070d;
+  border-radius: 1px;
+  background: #22e6ff;
+  pointer-events: auto;
+}
+
 .ns-marquee {
   position: absolute;
   border: 1px solid var(--cyan);

@@ -334,12 +334,21 @@ export function ChatList({
 
   const containerStyle: CSSProperties = {
     position: 'relative',
+    width,
+    height,
+    overflow: 'hidden',
+  };
+
+  const areaStyle: CSSProperties = {
+    position: 'absolute',
+    left: props.areaLeft,
+    top: props.areaTop,
+    width: Math.max(0, width - props.areaLeft - props.areaRight),
+    height: Math.max(0, height - props.areaTop - props.areaBottom),
     display: 'flex',
     flexDirection: 'column',
     justifyContent: props.direction === 'up' ? 'flex-end' : 'flex-start',
     gap: props.messageGap,
-    width,
-    height,
     overflow: 'hidden',
   };
 
@@ -347,7 +356,7 @@ export function ChatList({
     if (mode === 'output' && !props.showDemoInOutput) return null;
     return (
       <div style={containerStyle}>
-        {rows}
+        <div style={areaStyle}>{rows}</div>
         <span style={tagStyle}>{mode === 'editor' ? 'DEMO DATA — not live' : 'DEMO'}</span>
       </div>
     );
@@ -360,7 +369,9 @@ export function ChatList({
     if (mode === 'output') return null;
     return (
       <div style={containerStyle}>
-        <div style={captionStyle}>{`Waiting for ${providerLabel(keys)} chat…`}</div>
+        <div style={areaStyle}>
+          <div style={captionStyle}>{`Waiting for ${providerLabel(keys)} chat...`}</div>
+        </div>
       </div>
     );
   }
@@ -368,10 +379,16 @@ export function ChatList({
   if (unavailable && props.onUnavailable === 'message') {
     return (
       <div style={containerStyle}>
-        <div style={captionStyle}>{props.unavailableText}</div>
+        <div style={areaStyle}>
+          <div style={captionStyle}>{props.unavailableText}</div>
+        </div>
       </div>
     );
   }
 
-  return <div style={containerStyle}>{rows}</div>;
+  return (
+    <div style={containerStyle}>
+      <div style={areaStyle}>{rows}</div>
+    </div>
+  );
 }

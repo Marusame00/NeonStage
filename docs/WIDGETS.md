@@ -203,7 +203,25 @@ No main-process change is needed unless the widget introduces a new data source 
 | `chat-combined` | Combined chat | Twitch and YouTube merged, sorted by timestamp. |
 
 Chat widgets share the display fields in `src/widgets/chat/common.ts` (`maxMessages`, timestamps,
-badges, emotes, user colours, fade, gap, direction, `onUnavailable`, `showDemoInOutput`, bubble).
+badges, emotes, user colours, fade, gap, direction, `onUnavailable`, `showDemoInOutput`, bubble) and the
+**Message area** insets (`areaTop`, `areaRight`, `areaBottom`, `areaLeft`, 0–4000 px). The insets move the
+message list inside the chat window without moving the window itself, so the text can sit inside a
+decorative frame. They can be typed in the Inspector; when a single chat widget is selected the canvas
+also shows a dashed "Messages" box with handles for them. `onUnavailable` defaults to `hide`.
+
+The node's padding and border are applied inside its box: the widget renderer receives the node size
+minus padding and border on each side, so content no longer overflows a bordered or padded chat.
+
+## Templates
+
+`src/shared/templates.ts` ships four templates:
+
+| Id | Name | Chat layout |
+|---|---|---|
+| `synthwave-gameplay` (default) | Synthwave gameplay | One full-height Twitch chat on the right. |
+| `synthwave-dual-chat` | Synthwave gameplay (Twitch + YouTube) | Same layout plus a YouTube chat at the same position, hidden by default. |
+| `minimal-mono` | Minimal mono | No chat widget. |
+| `colorful-just-chatting` | Colorful just chatting | Twitch and YouTube chats stacked on the left. |
 
 ## Why third-party code execution is deferred
 

@@ -6,7 +6,12 @@ the code in this repository and the runs listed under "Verified manually".
 ## Implemented
 
 - Editor: scenes, groups, layers panel, canvas with snapping/guides/marquee, inspector (props, style,
-  output padding), undo/redo, keyboard shortcuts, project library, templates.
+  output padding), undo/redo, keyboard shortcuts, project library, four templates (default has a
+  single Twitch chat; a dual variant adds a hidden YouTube chat).
+- Group editing: clicking or dragging an item inside a group selects and moves only that item; the whole
+  group moves only when the group itself is selected (Layers panel). Marquee selects individual items.
+- Chat **Message area** insets move the message list inside the chat window (Inspector fields plus a
+  dashed canvas box with handles).
 - Preview/live documents with **Publish to OBS** and **Live edit**; program scene selection.
 - Shared renderer used by both the editor preview and the OBS output page.
 - Eleven widgets: text, shape, frame, timer, clock, goal, ticker, image, Twitch chat, YouTube chat,
@@ -16,7 +21,7 @@ the code in this repository and the runs listed under "Verified manually".
   media, `/health`; GET/HEAD only, host check, CSP, no CORS, 64-connection SSE cap, 15 s heartbeat.
 - Chat providers: Twitch anonymous read-only IRC (default, no sign-in) plus optional device-code flow +
   EventSub WebSocket, YouTube OAuth loopback + PKCE + `liveChat` polling, demo sources. Ref-counted sharing
-  by source key.
+  by source key. If EventSub subscription fails after sign-in, Twitch falls back to anonymous IRC.
 - Persistence: atomic writes with `.bak` rotation and corrupt-file recovery, schema and per-widget
   migrations, project export/import with embedded assets and secret stripping.
 - Secrets: Electron `safeStorage` (DPAPI on Windows) in `secrets.dat`, memory-only when OS encryption is
@@ -29,18 +34,18 @@ the code in this repository and the runs listed under "Verified manually".
 
 ## Tested automatically
 
-`npm test` — 161 tests in 20 files, all passing:
+`npm test` — 171 tests in 20 files, all passing:
 
 | Area | Files | Tests |
 |---|---|---|
-| Shared model, ops, output, geometry, schema, migrations, templates, serialization | `ops`, `output`, `migrations`, `templates`, `serialization` | 63 |
+| Shared model, ops, output, geometry, schema, migrations, templates, serialization | `ops`, `output`, `migrations`, `templates`, `serialization` | 67 |
 | Shared chat, runtime, secret stripping | `chat`, `runtime`, `secrets` | 18 |
 | Main stores (atomic writes, secrets, project store) | `main-atomic`, `main-secrets`, `main-projectStore` | 11 |
-| Main runtime and providers manager | `main-appState`, `main-providers` | 7 |
+| Main runtime and providers manager | `main-appState`, `main-providers` | 8 |
 | Main server + SSE hub | `main-server` | 5 |
-| Provider adapters (mocked fetch/WebSocket/timers) | `providers-twitch`, `providers-twitch-irc`, `providers-youtube` | 36 |
-| Editor state (history, keyboard) | `editor-history`, `editor-keyboard` | 12 |
-| Renderer | `render` | 9 |
+| Provider adapters (mocked fetch/WebSocket/timers) | `providers-twitch`, `providers-twitch-irc`, `providers-youtube` | 39 |
+| Editor state (history, keyboard) | `editor-history`, `editor-keyboard` | 13 |
+| Renderer | `render` | 10 |
 
 `npm run selftest` — 14 checks, all passing unpackaged and from `release/win-unpacked/NeonStage.exe`:
 
@@ -82,9 +87,14 @@ the code in this repository and the runs listed under "Verified manually".
   quota accounting.
 - DPAPI-backed `safeStorage` on other machines and profiles (it was available in this environment, but
   cross-machine behaviour and the memory-only fallback were not exercised on real hardware).
-- Running the NSIS installer or the portable executable: only `--dir` packaging was built and run.
-- The editor window itself: `npm start` and `npm run dev` were not launched in this slice, so the
-  editor UI was not exercised end to end here (its state logic is covered by unit tests).
+- Running the NSIS installer or the portable executable: both are built, but only the `--dir` build was
+  run here.
+- The editor window with a real mouse: group selection and the message-area box were only driven with
+  scripted pointer events. Group click/drag behaved as described above; dragging the "Messages" box or
+  its handles did not change the insets in that scripted run, so canvas dragging of the message area is
+  unproven (the Inspector fields work).
+- Twitch live chat was confirmed manually by the user for one channel (anonymous read-only); the other
+  live paths above remain untested here.
 
 ## Deferred
 

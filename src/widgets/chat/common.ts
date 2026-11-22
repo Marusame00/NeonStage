@@ -15,6 +15,10 @@ export type ChatDisplayProps = {
   unavailableText: string;
   showDemoInOutput: boolean;
   bubble: boolean;
+  areaTop: number;
+  areaRight: number;
+  areaBottom: number;
+  areaLeft: number;
 };
 
 export function chatDisplayDefaults(): ChatDisplayProps {
@@ -31,6 +35,10 @@ export function chatDisplayDefaults(): ChatDisplayProps {
     unavailableText: 'Chat unavailable',
     showDemoInOutput: false,
     bubble: false,
+    areaTop: 0,
+    areaRight: 0,
+    areaBottom: 0,
+    areaLeft: 0,
   };
 }
 
@@ -55,6 +63,10 @@ export function chatDisplayFields(): FieldSpec[] {
       { value: 'message', label: 'Show a message' },
     ] },
     { key: 'unavailableText', label: 'Unavailable text', type: 'text', maxLength: 200, section: 'Fallback', showIf: { key: 'onUnavailable', equals: 'message' } },
+    { key: 'areaTop', label: 'Top inset', type: 'number', min: 0, max: 4000, step: 1, unit: 'px', section: 'Message area', help: 'Moves the messages inside the chat window. Drag the dashed box on the canvas, or type values here.' },
+    { key: 'areaRight', label: 'Right inset', type: 'number', min: 0, max: 4000, step: 1, unit: 'px', section: 'Message area' },
+    { key: 'areaBottom', label: 'Bottom inset', type: 'number', min: 0, max: 4000, step: 1, unit: 'px', section: 'Message area' },
+    { key: 'areaLeft', label: 'Left inset', type: 'number', min: 0, max: 4000, step: 1, unit: 'px', section: 'Message area' },
   ];
 }
 
@@ -84,5 +96,9 @@ export function chatDisplayShape(): Record<string, ZodType> {
     unavailableText: strField('Chat unavailable', 200),
     showDemoInOutput: boolField(false),
     bubble: boolField(false),
+    areaTop: numField(0, 0, 4000),
+    areaRight: numField(0, 0, 4000),
+    areaBottom: numField(0, 0, 4000),
+    areaLeft: numField(0, 0, 4000),
   };
 }

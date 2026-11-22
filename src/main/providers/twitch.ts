@@ -154,6 +154,7 @@ export class TwitchChatAdapter implements ChatAdapter {
   private validateTimer: unknown = null;
   private refreshing: Promise<boolean> | null = null;
   private welcomeWaiters: (() => void)[] = [];
+  private lastHelixStatus: number | null = null;
 
   constructor(readonly deps: ProviderAdapterDeps) {
     this.timers = deps.timers ?? systemTimers;
@@ -244,7 +245,7 @@ export class TwitchChatAdapter implements ChatAdapter {
     this.cancelAuth();
     this.clearTokens();
     this.dropSocket();
-    this.subscriptions.clear();
+    this.clearSubscriptions();
     this.badges.clear();
     this.account = undefined;
     this.setState('connected', ANONYMOUS_MESSAGE);
@@ -316,7 +317,7 @@ export class TwitchChatAdapter implements ChatAdapter {
     this.dropSocket();
     this.timers.clearTimeout(this.reconnectTimer);
     this.reconnectTimer = null;
-    this.subscriptions.clear();
+    this.clearSubscriptions();
     this.irc.dispose();
     this.sources.clear();
   }
@@ -338,6 +339,11 @@ export class TwitchChatAdapter implements ChatAdapter {
 
   private markSources(state: SourceState, detail?: string): void {
     for (const key of [...this.sources.keys()]) this.setSource(key, state, detail);
+  }
+
+  private clearSubscriptions(): void {
+    this.subscriptions.clear();
+    this.subscribing.clear();
   }
 
   private persistTokens(): void {
@@ -615,7 +621,20 @@ export class TwitchChatAdapter implements ChatAdapter {
     if (!this.sources.has(key)) return;
     await this.subscribeBroadcaster(broadcasterId);
     if (!this.sources.has(key)) return;
-    this.setSource(key, 'live');
+    if (!this.hasChatSubscription(broadcasterId)) {
+      this.fallBackToAnonymous(key, login);
+    }
+  }
+
+  private fallBackToAnonymous(key: string, login: string): void {
+    const channel = login === '@me' ? this.tokens?.login ?? '' : login;
+    const status = this.lastHelixStatus;
+    const message = status
+      ? `Signed-in chat could not subscribe (HTTP ${status}); reading this channel anonymously instead.`
+      : 'Signed-in chat could not subscribe; reading this channel anonymously instead.';
+    this.setState('connected', message);
+    this.resolveAnonymous(key, channel);
+    this.setSource(key, 'connecting', message);
   }
 
   private async ensureSession(): Promise<void> {
@@ -673,6 +692,7 @@ export class TwitchChatAdapter implements ChatAdapter {
     this.ws = null;
     this.sessionId = null;
     this.clearWatchdog();
+    this.clearSubscriptions();
     this.scheduleReconnect();
   }
 
@@ -693,6 +713,7 @@ export class TwitchChatAdapter implements ChatAdapter {
     this.ws = null;
     this.sessionId = null;
     this.clearWatchdog();
+    this.clearSubscriptions();
     this.releaseWaiters();
     if (!ws) return;
     ws.onmessage = null;
@@ -804,12 +825,29 @@ export class TwitchChatAdapter implements ChatAdapter {
     for (const id of ids) void this.subscribeBroadcaster(id);
   }
 
+  private hasChatSubscription(broadcasterId: string): boolean {
+    return [...this.subscriptions.values()].some(
+      (entry) => entry.broadcasterId === broadcasterId && entry.type === 'channel.chat.message',
+    );
+  }
+
+  private markSubscribedLive(broadcasterId: string): void {
+    if (!this.hasChatSubscription(broadcasterId)) return;
+    for (const [key, source] of this.sources) {
+      if (source.broadcasterId !== broadcasterId || source.ircChannel) continue;
+      this.setSource(key, 'live');
+    }
+  }
+
   private async subscribeBroadcaster(broadcasterId: string): Promise<void> {
     if (!this.sessionId) return;
     const existing = [...this.subscriptions.values()].some(
       (entry) => entry.broadcasterId === broadcasterId,
     );
-    if (existing) return;
+    if (existing) {
+      this.markSubscribedLive(broadcasterId);
+      return;
+    }
     const inFlight = this.subscribing.get(broadcasterId);
     if (inFlight) return inFlight;
     const task = this.createSubscriptions(broadcasterId);
@@ -819,6 +857,7 @@ export class TwitchChatAdapter implements ChatAdapter {
     } finally {
       this.subscribing.delete(broadcasterId);
     }
+    this.markSubscribedLive(broadcasterId);
   }
 
   private async createSubscriptions(broadcasterId: string): Promise<void> {
@@ -999,9 +1038,11 @@ export class TwitchChatAdapter implements ChatAdapter {
       res = await send();
     }
     if (!res.ok) {
+      this.lastHelixStatus = res.status;
       this.deps.log.warn(`Twitch Helix ${path.split('?')[0]} -> HTTP ${res.status}`);
       return null;
     }
+    this.lastHelixStatus = null;
     return (await res.json()) as T;
   }
 }

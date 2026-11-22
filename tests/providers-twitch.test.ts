@@ -7,6 +7,7 @@ import type { Logger } from '../src/main/log';
 import type { WsLike } from '../src/main/providers/deps';
 import { ProviderManager, type ChatSink } from '../src/main/providers/manager';
 import { TwitchChatAdapter } from '../src/main/providers/twitch';
+import { IRC_URL } from '../src/main/providers/twitchIrc';
 import { WidgetRuntimeHost } from '../src/main/runtime/widgetRuntimeHost';
 import { SecretStore } from '../src/main/store/secrets';
 import { FakeTimers, fakeFetch, flush, type FetchCall, type FetchRouter } from './helpers';
@@ -45,6 +46,14 @@ class FakeWs implements WsLike {
 
   close(): void {
     this.closed = true;
+  }
+
+  open(): void {
+    this.onopen?.({});
+  }
+
+  line(text: string): void {
+    this.onmessage?.({ data: `${text}\r\n` });
   }
 
   emit(message: unknown): void {
@@ -426,6 +435,87 @@ describe('Twitch EventSub session', () => {
     h.sockets[1]!.emit(welcome('sess-2'));
     await flush();
     expect(h.adapter.status().state).toBe('connected');
+  });
+
+  it('recreates subscriptions on a new session after the socket closes', async () => {
+    const h = await connectedAdapter(helixRouter());
+    await liveChannel(h);
+    const posts = (): FetchCall[] =>
+      h.calls.filter((call) => call.method === 'POST' && call.url.endsWith('/eventsub/subscriptions'));
+    expect(posts()).toHaveLength(4);
+    expect(h.states.at(-1)).toEqual({ key: 'twitch:mychannel', state: 'live' });
+
+    h.sockets[0]!.drop();
+    await flush();
+    expect(h.adapter.status().state).toBe('reconnecting');
+    expect(h.states.at(-1)).toEqual({
+      key: 'twitch:mychannel',
+      state: 'connecting',
+      detail: 'Reconnecting to Twitch chat',
+    });
+
+    await h.timers.advance(2000);
+    expect(h.sockets).toHaveLength(2);
+    h.sockets[1]!.emit(welcome('sess-2'));
+    await flush();
+
+    expect(posts()).toHaveLength(8);
+    const bodies = posts()
+      .slice(4)
+      .map((call) => JSON.parse(call.body) as { transport: Record<string, string> });
+    expect(bodies.every((body) => body.transport.session_id === 'sess-2')).toBe(true);
+    expect(h.states.at(-1)).toEqual({ key: 'twitch:mychannel', state: 'live' });
+    expect(h.adapter.status().state).toBe('connected');
+  });
+
+  it('falls back to anonymous IRC when the subscription post is rejected', async () => {
+    const h = await connectedAdapter(
+      helixRouter((call) => {
+        if (call.url.endsWith('/helix/eventsub/subscriptions') && call.method === 'POST') {
+          return { status: 403, body: { message: 'missing scope' } };
+        }
+        return undefined;
+      }),
+    );
+    h.adapter.start(CHANNEL_REQ, h.sink);
+    await flush();
+    expect(h.sockets).toHaveLength(1);
+    h.sockets[0]!.emit(welcome('sess-1'));
+    await flush();
+
+    expect(h.sockets).toHaveLength(2);
+    expect(h.sockets[1]!.url).toBe(IRC_URL);
+    h.sockets[1]!.open();
+    expect(h.sockets[1]!.sent.join('')).toContain('JOIN #mychannel');
+    h.sockets[1]!.line(':tmi.twitch.tv ROOMSTATE #mychannel');
+    expect(h.states.at(-1)).toEqual({ key: 'twitch:mychannel', state: 'live' });
+
+    const status = h.adapter.status();
+    expect(status.state).toBe('connected');
+    expect(status.mode).toBe('signed-in');
+    expect(status.message).toBe(
+      'Signed-in chat could not subscribe (HTTP 403); reading this channel anonymously instead.',
+    );
+    expect(JSON.stringify(status)).not.toContain('token-1');
+  });
+
+  it('does not re-post subscriptions on the session_reconnect handover', async () => {
+    const h = await connectedAdapter(helixRouter());
+    await liveChannel(h);
+    const posts = (): FetchCall[] =>
+      h.calls.filter((call) => call.method === 'POST' && call.url.endsWith('/eventsub/subscriptions'));
+    expect(posts()).toHaveLength(4);
+
+    h.sockets[0]!.emit({
+      metadata: { message_type: 'session_reconnect' },
+      payload: { session: { id: 'sess-1', reconnect_url: 'wss://eventsub.wss.twitch.tv/ws?reconnect=1' } },
+    });
+    await flush();
+    h.sockets[1]!.emit(welcome('sess-2'));
+    await flush();
+
+    expect(posts()).toHaveLength(4);
+    expect(h.states.at(-1)).toEqual({ key: 'twitch:mychannel', state: 'live' });
   });
 });
 

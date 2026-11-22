@@ -29,8 +29,8 @@ class SceneBuilder {
   }
 }
 
-function synthwaveGameplay(w: number, h: number): Scene {
-  const builder = new SceneBuilder('Synthwave gameplay', w, h);
+function synthwaveGameplay(w: number, h: number, withYouTube = false): Scene {
+  const builder = new SceneBuilder(withYouTube ? 'Synthwave gameplay (Twitch + YouTube)' : 'Synthwave gameplay', w, h);
 
   const grid = builder.add(
     'shape',
@@ -81,42 +81,34 @@ function synthwaveGameplay(w: number, h: number): Scene {
       name: 'Webcam frame',
     },
   );
-  const chatTwitch = builder.add(
-    'chat-twitch',
-    { x: w * 0.68, y: h * 0.4, w: w * 0.28, h: h * 0.175 },
-    {
-      props: { source: 'demo', maxMessages: 6, bubble: true, onUnavailable: 'hide' },
-      style: {
-        bgColor: '#120a24',
-        bgOpacity: 0.55,
-        radius: 10,
-        padding: 12,
-        borderWidth: 1,
-        borderColor: '#3ff2ff',
-        borderOpacity: 0.35,
-        fontSize: 20,
-      },
-      name: 'Twitch chat',
-    },
-  );
-  const chatYouTube = builder.add(
-    'chat-youtube',
-    { x: w * 0.68, y: h * 0.585, w: w * 0.28, h: h * 0.175 },
-    {
-      props: { source: 'demo', maxMessages: 6, bubble: true, onUnavailable: 'hide' },
-      style: {
-        bgColor: '#120a24',
-        bgOpacity: 0.55,
-        radius: 10,
-        padding: 12,
-        borderWidth: 1,
-        borderColor: '#ff3fd2',
-        borderOpacity: 0.35,
-        fontSize: 20,
-      },
-      name: 'YouTube chat',
-    },
-  );
+  const chatRect = { x: w * 0.68, y: h * 0.39, w: w * 0.28, h: h * 0.45 };
+  const chatStyle = {
+    bgColor: '#120a24',
+    bgOpacity: 0.55,
+    radius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#3ff2ff',
+    borderOpacity: 0.35,
+    fontSize: 20,
+  };
+  const chatProps = { source: 'demo', maxMessages: 12, bubble: true, onUnavailable: 'hide' };
+  const chatTwitch = builder.add('chat-twitch', chatRect, {
+    props: chatProps,
+    style: chatStyle,
+    name: 'Twitch chat',
+  });
+  const chats = [chatTwitch];
+  if (withYouTube) {
+    chats.push(
+      builder.add('chat-youtube', chatRect, {
+        props: chatProps,
+        style: { ...chatStyle, borderColor: '#ff3fd2' },
+        name: 'YouTube chat',
+        visible: false,
+      }),
+    );
+  }
   const title = builder.add(
     'text',
     { x: w * 0.04, y: h * 0.76, w: w * 0.6, h: h * 0.08 },
@@ -144,7 +136,7 @@ function synthwaveGameplay(w: number, h: number): Scene {
       name: 'Ticker',
     },
   );
-  builder.group([game, webcam, chatTwitch, chatYouTube, title, ticker], 'Front');
+  builder.group([game, webcam, ...chats, title, ticker], 'Front');
 
   return builder.scene;
 }
@@ -343,8 +335,14 @@ export const TEMPLATES: Template[] = [
   {
     id: 'synthwave-gameplay',
     name: 'Synthwave gameplay',
-    description: 'Neon game and webcam frames with combined chat, title and ticker.',
-    build: synthwaveGameplay,
+    description: 'Neon game and webcam frames with a full-height Twitch chat, title and ticker.',
+    build: (w, h) => synthwaveGameplay(w, h),
+  },
+  {
+    id: 'synthwave-dual-chat',
+    name: 'Synthwave gameplay (Twitch + YouTube)',
+    description: 'Same layout with full-size Twitch and YouTube chats; YouTube starts hidden.',
+    build: (w, h) => synthwaveGameplay(w, h, true),
   },
   {
     id: 'minimal-mono',
