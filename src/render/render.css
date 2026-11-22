@@ -1,0 +1,127 @@
+@keyframes ns-ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-1 * var(--ns-ticker-distance, 0px)));
+  }
+}
+
+@keyframes ns-rotate-fade {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  12% {
+    opacity: 1;
+    transform: none;
+  }
+  88% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes ns-chat-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes ns-chat-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes ns-glow-pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes ns-frame-shimmer {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.ns-ticker-track {
+  animation-name: ns-ticker-scroll;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-duration: calc(10s / var(--ns-speed, 1));
+}
+
+.ns-rotate-item {
+  animation-name: ns-rotate-fade;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-duration: calc(6s / var(--ns-speed, 1));
+}
+
+.ns-chat-row {
+  animation-name: ns-chat-enter;
+  animation-timing-function: ease-out;
+  animation-iteration-count: 1;
+  animation-fill-mode: both;
+  animation-duration: calc(220ms / var(--ns-speed, 1));
+}
+
+.ns-chat-fade-out {
+  animation-name: ns-chat-fade-out;
+  animation-timing-function: linear;
+  animation-iteration-count: 1;
+  animation-fill-mode: forwards;
+  animation-duration: calc(600ms / var(--ns-speed, 1));
+}
+
+.ns-glow-pulse {
+  animation-name: ns-glow-pulse;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-duration: calc(3s / var(--ns-speed, 1));
+}
+
+.ns-frame-shimmer {
+  animation-name: ns-frame-shimmer;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-duration: calc(4s / var(--ns-speed, 1));
+}
+
+.ns-goal-fill {
+  transition: width calc(400ms / var(--ns-speed, 1)) ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ns-anim {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+.ns-reduce-motion .ns-anim {
+  animation: none !important;
+  transition: none !important;
+}

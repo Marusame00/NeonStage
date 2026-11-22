@@ -1,0 +1,83 @@
+{
+  "name": "neonstage",
+  "productName": "NeonStage",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Design and control transparent OBS overlays",
+  "author": "Marusame",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Marusame00/NeonStage.git"
+  },
+  "type": "commonjs",
+  "main": "dist/main/main.js",
+  "scripts": {
+    "build:main": "node scripts/build-main.mjs",
+    "build:editor": "vite build -c vite.editor.config.ts",
+    "build:overlay": "vite build -c vite.overlay.config.ts",
+    "build": "npm run typecheck && npm run build:main && npm run build:editor && npm run build:overlay",
+    "start": "npm run build && electron .",
+    "dev": "node scripts/dev.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "selftest": "electron . --selftest",
+    "dist": "npm run build && electron-builder --win",
+    "dist:dir": "npm run build && electron-builder --win --dir"
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "electron": "45.4.1",
+    "electron-builder": "^26.0.12",
+    "esbuild": "^0.25.0",
+    "typescript": "~5.9.3",
+    "vite": "^6.3.6",
+    "vitest": "^3.2.4"
+  },
+  "build": {
+    "appId": "com.neonstage.app",
+    "productName": "NeonStage",
+    "asar": true,
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "artifactName": "${productName}-${version}-Setup.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-Portable.${ext}"
+    }
+  }
+}

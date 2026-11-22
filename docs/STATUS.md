@@ -1,0 +1,96 @@
+# NeonStage — Status
+
+Honest snapshot of what exists, what is proven, and what is not. Everything below was checked against
+the code in this repository and the runs listed under "Verified manually".
+
+## Implemented
+
+- Editor: scenes, groups, layers panel, canvas with snapping/guides/marquee, inspector (props, style,
+  output padding), undo/redo, keyboard shortcuts, project library, templates.
+- Preview/live documents with **Publish to OBS** and **Live edit**; program scene selection.
+- Shared renderer used by both the editor preview and the OBS output page.
+- Eleven widgets: text, shape, frame, timer, clock, goal, ticker, image, Twitch chat, YouTube chat,
+  combined chat.
+- Runtime state: timers, goals, session clock, persisted to `runtime.json`, shared by all outputs.
+- Local HTTP server on `127.0.0.1` with output pages, SSE streams, static bundle, content-addressed
+  media, `/health`; GET/HEAD only, host check, CSP, no CORS, 64-connection SSE cap, 15 s heartbeat.
+- Chat providers: Twitch anonymous read-only IRC (default, no sign-in) plus optional device-code flow +
+  EventSub WebSocket, YouTube OAuth loopback + PKCE + `liveChat` polling, demo sources. Ref-counted sharing
+  by source key.
+- Persistence: atomic writes with `.bak` rotation and corrupt-file recovery, schema and per-widget
+  migrations, project export/import with embedded assets and secret stripping.
+- Secrets: Electron `safeStorage` (DPAPI on Windows) in `secrets.dat`, memory-only when OS encryption is
+  unavailable; never in documents, exports, SSE payloads or logs.
+- Security: context isolation, sandbox, no node integration, navigation and `window.open` blocked,
+  permission requests denied, IPC sender check + zod validation on every channel, narrow preload API.
+- Packaging: electron-builder NSIS + portable (x64), asar, `release/` output.
+- End-to-end self-test: `npm run selftest` (`electron . --selftest`), 14 checks, works unpackaged and
+  packaged.
+
+## Tested automatically
+
+`npm test` — 161 tests in 20 files, all passing:
+
+| Area | Files | Tests |
+|---|---|---|
+| Shared model, ops, output, geometry, schema, migrations, templates, serialization | `ops`, `output`, `migrations`, `templates`, `serialization` | 63 |
+| Shared chat, runtime, secret stripping | `chat`, `runtime`, `secrets` | 18 |
+| Main stores (atomic writes, secrets, project store) | `main-atomic`, `main-secrets`, `main-projectStore` | 11 |
+| Main runtime and providers manager | `main-appState`, `main-providers` | 7 |
+| Main server + SSE hub | `main-server` | 5 |
+| Provider adapters (mocked fetch/WebSocket/timers) | `providers-twitch`, `providers-twitch-irc`, `providers-youtube` | 36 |
+| Editor state (history, keyboard) | `editor-history`, `editor-keyboard` | 12 |
+| Renderer | `render` | 9 |
+
+`npm run selftest` — 14 checks, all passing unpackaged and from `release/win-unpacked/NeonStage.exe`:
+
+| Check | What it proves |
+|---|---|
+| server binds 127.0.0.1 and /health responds | The real server binds loopback only and reports app name and version. |
+| output page served from built assets with strict CSP | The page comes from the built `dist/overlay` bundle, carries the restrictive CSP without `frame-ancestors`, has no inline script, and every referenced asset returns 200 with the right content type. |
+| full-scene output is transparent | `capturePage` of a real output page has alpha 0 in all four corners, `html`/`body`/`#root` compute to `rgba(0, 0, 0, 0)`, and non-transparent pixels exist. |
+| editor-only UI absent from output | The output DOM contains no `GAME CAPTURE AREA`, `Editor only` or `DEMO DATA`, no `ns-editor`/`selection`/`checker` classes, and no demo chat rows. |
+| live edit updates the open output without reload | With live edit on, an `AppState` draft change reaches the open page within 3 s and the page did not reload. |
+| preview/live separation holds until publish | With live edit off, a draft change does not reach the output; publish does. |
+| object and group output bounds match computed viewport | `/events/.../object/...` and `/events/.../group/...` snapshots match the independently computed rect + overflow + padding viewport, and group children keep their relative positions. |
+| timer state is shared across connections | Two SSE connections see identical timer state and server time; after 1.2 s the timer advanced once, not once per connection. |
+| chat sources are ref-counted across connections | Two widgets on one `twitch:` key produce one provider entry, `adapter.start` runs once with three output connections open, and releasing through the runtime host drops the ref count to 0 with one `stop`. |
+| first SSE message is a full snapshot | The first message on a new stream is `snapshot` with scene, runtime and chat. |
+| output reconnects after a server restart | After stopping and restarting the server on the same port, the open page reconnects through `EventSource` and shows an edit made while it was down, without reloading. |
+| project persists and recovers from backup | A new `ProjectStore` on the same directory reloads an identical project; a corrupted main file is recovered from `.bak` with a notice. |
+| export excludes secrets and absolute paths | Secrets placed in `SecretStore` do not appear in the exported file, and it contains no `C:\` or user paths. |
+| output server is read-only | POST/PUT/DELETE return 405, `/media/../index.html` returns 404, `/api/*` returns 404. |
+
+## Verified manually in this environment
+
+- `npm run typecheck`, `npm test`, `npm run build`, `npm run selftest` — all clean, selftest 14/14.
+- `npm run dist:dir` — unpacked build produced `release/win-unpacked/NeonStage.exe` and
+  `release/win-unpacked/resources/app.asar`.
+- `release/win-unpacked/NeonStage.exe --selftest` — 14/14, exit code 0, so the packaged app resolves
+  `dist/` inside `app.asar` and the self-test is not gated on `!app.isPackaged`.
+- Transparency, DOM isolation, live update, preview/live separation, SSE protocol, restart/reconnect,
+  persistence recovery and export were exercised through real Electron offscreen `BrowserWindow`s and
+  real HTTP/SSE connections — **not** through OBS.
+
+## Untested
+
+- Real OBS embedding: no OBS installation was available here. The Browser Source URL, transparency,
+  scaling and layering behaviour are only proven at the browser level.
+- Live Twitch network paths: the anonymous IRC socket (join limits, message volume, `RECONNECT`, the
+  6-minute watchdog), device-code approval, Helix responses, EventSub WebSocket traffic.
+- Live YouTube network paths: consent screen, loopback redirect, code exchange, Data API responses and
+  quota accounting.
+- DPAPI-backed `safeStorage` on other machines and profiles (it was available in this environment, but
+  cross-machine behaviour and the memory-only fallback were not exercised on real hardware).
+- Running the NSIS installer or the portable executable: only `--dir` packaging was built and run.
+- The editor window itself: `npm start` and `npm run dev` were not launched in this slice, so the
+  editor UI was not exercised end to end here (its state logic is covered by unit tests).
+
+## Deferred
+
+- Marketplace and third-party plugin execution (see `docs/WIDGETS.md`).
+- Direct game/window/media capture inside NeonStage — OBS owns capture; frames are decorations.
+- Alerts, donations, follower/sub integrations; the goal bar is manual by design.
+- Multiple editor windows.
+- macOS and Linux packaging.
+- Cloud sync or any NeonStage-hosted service.
