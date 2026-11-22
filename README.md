@@ -5,6 +5,8 @@ You build scenes in the NeonStage editor; OBS loads a clean, transparent output 
 app serves on loopback (`http://127.0.0.1:8790` by default). Nothing is uploaded and there is no
 NeonStage account or relay server.
 
+![NeonStage editor](docs/images/editor.png)
+
 - Editor: scenes, groups, layers, inspector, undo/redo, preview and live documents.
 - Output: one Browser Source for the whole composition, or one per scene, group or object.
 - Widgets: text, shape, frame, timer, clock, goal, ticker, image, Twitch chat, YouTube chat, combined chat.
@@ -154,6 +156,13 @@ The product name lives in three places:
 - [docs/WIDGETS.md](docs/WIDGETS.md) — the widget contract and how to add a widget.
 - [docs/PROVIDERS.md](docs/PROVIDERS.md) — Twitch and YouTube setup, scopes, quota, troubleshooting.
 - [docs/STATUS.md](docs/STATUS.md) — what is implemented, tested, verified, untested and deferred.
+
+## AI disclosure
+
+NeonStage was built with AI assistance using Abacus Desktop, specifically the Opus 5.5 model.
+The AI wrote most of the code, tests and documentation, guided, tested and reviewed by the author.
+The code has not had an independent human security audit; review it yourself before relying on it
+for anything critical.
 
 ## License
 
