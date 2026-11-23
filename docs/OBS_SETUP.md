@@ -56,7 +56,9 @@ Select the frame (or any object) and open the **OBS placement** section in the I
 OBS Base (Canvas) Resolution, then copy the listed position and bounding-box size into the capture
 source's **Transform → Edit Transform** dialog (Ctrl+E) so the real source lines up with the frame.
 For frames, **Line up with** switches between the outer edge and the inside of the stroke, and the
-values include the letterbox offset whenever the scene and canvas aspect ratios differ.
+values include the letterbox offset whenever the scene and canvas aspect ratios differ. Set **OBS
+alignment** to match the highlighted dot in the source's Alignment grid in Edit Transform (Top Left,
+Center, and so on); the position is given for that anchor point, and the choice is remembered per object.
 
 ## Front and background split
 

@@ -215,6 +215,7 @@ export class AppState extends EventEmitter {
     }
     this.projectFile = { ...this.projectFile, programSceneId: sceneId };
     this.persist();
+    this.emit('live', this.projectFile.live);
     const meta = this.meta();
     this.emit('meta', meta);
     return meta;

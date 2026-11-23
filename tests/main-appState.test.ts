@@ -2,7 +2,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
+import { EventEmitter } from 'node:events';
 import { AppState } from '../src/main/runtime/appState';
+import { SseHub } from '../src/main/server/sseHub';
 import { ProjectStore } from '../src/main/store/projectStore';
 
 const dirs: string[] = [];
@@ -78,6 +80,62 @@ describe('AppState', () => {
     expect(state.meta().liveDiffers).toBe(true);
     state.publish();
     expect(state.meta().liveDiffers).toBe(false);
+  });
+
+  it('notifies live outputs when the program scene changes', () => {
+    const state = setup();
+    state.setLiveEdit(true);
+    const next = structuredClone(state.draft);
+    const second = { ...structuredClone(next.scenes[0]!), id: 'sc-second', name: 'Second' };
+    next.scenes.push(second);
+    state.updateDraft(next);
+
+    let liveEvents = 0;
+    state.on('live', () => {
+      liveEvents += 1;
+    });
+    state.setProgramScene('sc-second');
+    expect(state.programSceneId).toBe('sc-second');
+    expect(liveEvents).toBe(1);
+  });
+
+  it('switches the live OBS output to the new program scene', () => {
+    const state = setup();
+    state.setLiveEdit(true);
+    const next = structuredClone(state.draft);
+    next.scenes.push({ ...structuredClone(next.scenes[0]!), id: 'sc-second', name: 'Second', width: 1280, height: 720 });
+    state.updateDraft(next);
+
+    const hub = new SseHub({
+      getLiveDoc: () => state.live,
+      getProgramSceneId: () => state.programSceneId,
+      getRuntime: () => state.runtime,
+      getChat: () => state.chat,
+      getBroadcastStatus: () => ({}) as never,
+      now: () => 0,
+    });
+    state.on('live', () => hub.docChanged());
+
+    const writes: string[] = [];
+    const res = Object.assign(new EventEmitter(), {
+      writableEnded: false,
+      destroyed: false,
+      writableLength: 0,
+      writeHead: () => res,
+      write: (chunk: string) => {
+        writes.push(chunk);
+        return true;
+      },
+      end: () => undefined,
+    });
+    hub.attach({} as never, res as never, { kind: 'live' });
+    writes.length = 0;
+
+    state.setProgramScene('sc-second');
+    const sceneMessages = writes.filter((chunk) => chunk.includes('"t":"scene"'));
+    expect(sceneMessages).toHaveLength(1);
+    expect(sceneMessages[0]).toContain('"width":1280');
+    hub.dispose();
   });
 
   it('rejects an unknown program scene', () => {

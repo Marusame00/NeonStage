@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  alignedObsPosition,
   computeObsPlacement,
   formatObsNumber,
   formatObsPlacementText,
@@ -137,9 +138,42 @@ describe('formatObsPlacementText', () => {
         'Positional Alignment: Top Left',
         'Bounding Box Type: Stretch to bounds',
         'Alignment in Bounding Box: Center',
-        'Bounding Box Size: 960 x 540',
+        'Size / Bounding Box Size: 960 x 540',
         'Crop: Left 0, Right 0, Top 0, Bottom 0',
       ].join('\n'),
     );
+  });
+
+  it('uses the anchor point for a center-aligned source', () => {
+    const placement = computeObsPlacement({
+      rect: { x: 1305.6, y: 57.8, w: 537.6, h: 324 },
+      sceneWidth: 1920,
+      sceneHeight: 1080,
+      canvasWidth: 1920,
+      canvasHeight: 1080,
+      inset: 0,
+    });
+    const text = formatObsPlacementText('Webcam', placement, 'center');
+    expect(text).toContain('Position: X 1574.4, Y 219.8');
+    expect(text).toContain('Positional Alignment: Center');
+  });
+});
+
+describe('alignedObsPosition', () => {
+  const placement = computeObsPlacement({
+    rect: { x: 100, y: 200, w: 400, h: 300 },
+    sceneWidth: 1920,
+    sceneHeight: 1080,
+    canvasWidth: 1920,
+    canvasHeight: 1080,
+    inset: 0,
+  });
+
+  it('offsets the position by the alignment anchor', () => {
+    expect(alignedObsPosition(placement, 'top-left')).toEqual({ x: 100, y: 200 });
+    expect(alignedObsPosition(placement, 'center')).toEqual({ x: 300, y: 350 });
+    expect(alignedObsPosition(placement, 'bottom-right')).toEqual({ x: 500, y: 500 });
+    expect(alignedObsPosition(placement, 'top')).toEqual({ x: 300, y: 200 });
+    expect(alignedObsPosition(placement, 'left')).toEqual({ x: 100, y: 350 });
   });
 });

@@ -1,9 +1,13 @@
 import { useState, type ReactNode } from 'react';
 import type { SceneNode } from '../../../shared/model';
 import {
+  alignedObsPosition,
   computeObsPlacement,
   formatObsNumber,
   formatObsPlacementText,
+  isObsAlignment,
+  OBS_ALIGNMENTS,
+  type ObsAlignment,
 } from '../../../shared/obsPlacement';
 import { toast } from '../../state/actions';
 import { Button } from '../../ui/Button';
@@ -60,6 +64,31 @@ function saveCanvas(size: CanvasSize): void {
   }
 }
 
+const ANCHOR_KEY = 'neonstage.obsAlignment';
+
+function readAnchors(): Record<string, ObsAlignment> {
+  try {
+    const raw = window.localStorage.getItem(ANCHOR_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const result: Record<string, ObsAlignment> = {};
+    for (const [id, value] of Object.entries(parsed)) {
+      if (isObsAlignment(value)) result[id] = value;
+    }
+    return result;
+  } catch {
+    return {};
+  }
+}
+
+function saveAnchors(anchors: Record<string, ObsAlignment>): void {
+  try {
+    window.localStorage.setItem(ANCHOR_KEY, JSON.stringify(anchors));
+  } catch {
+    toast('error', 'Could not save the OBS alignment.');
+  }
+}
+
 function ValueRow({ label, value }: { label: string; value: string }): ReactNode {
   return (
     <div className="ns-field">
@@ -76,6 +105,14 @@ export function ObsPlacementSection({
 }: ObsPlacementSectionProps): ReactNode {
   const [canvas, setCanvas] = useState<CanvasSize>(() => readCanvas(sceneWidth, sceneHeight));
   const [align, setAlign] = useState<'outer' | 'inner'>('outer');
+  const [anchors, setAnchors] = useState<Record<string, ObsAlignment>>(readAnchors);
+  const anchor = anchors[node.id] ?? 'top-left';
+  const setAnchor = (value: string): void => {
+    if (!isObsAlignment(value)) return;
+    const next = { ...anchors, [node.id]: value };
+    setAnchors(next);
+    saveAnchors(next);
+  };
   const isFrame = node.widget?.kind === 'frame';
   const purpose = isFrame ? node.widget?.props.purpose : undefined;
   const target =
@@ -90,6 +127,7 @@ export function ObsPlacementSection({
     canvasHeight: canvas.h,
     inset,
   });
+  const position = alignedObsPosition(placement, anchor);
 
   const setCanvasW = (value: number): void => {
     const next = { w: value, h: canvas.h };
@@ -132,19 +170,29 @@ export function ObsPlacementSection({
         />
       ) : null}
 
+      <Select
+        label="OBS alignment"
+        value={anchor}
+        options={OBS_ALIGNMENTS.map((entry) => ({ value: entry.value, label: entry.label }))}
+        onChange={setAnchor}
+      />
+      <p className="ns-hint">
+        Match the highlighted dot in the Alignment grid of OBS&apos;s Edit Transform for this source.
+      </p>
+
       <div className="ns-grid-2">
-        <ValueRow label="Position X" value={formatObsNumber(placement.x)} />
-        <ValueRow label="Position Y" value={formatObsNumber(placement.y)} />
-        <ValueRow label="Bounding box W" value={formatObsNumber(placement.w)} />
-        <ValueRow label="Bounding box H" value={formatObsNumber(placement.h)} />
+        <ValueRow label="Position X" value={formatObsNumber(position.x)} />
+        <ValueRow label="Position Y" value={formatObsNumber(position.y)} />
+        <ValueRow label="Width" value={formatObsNumber(placement.w)} />
+        <ValueRow label="Height" value={formatObsNumber(placement.h)} />
       </div>
       <p className="ns-hint">
-        Rotation 0 · Alignment Top Left · Bounding box: Stretch to bounds · Crop 0
+        Rotation 0 · Crop 0 · Width/Height go in Size (or Bounding Box Size with Stretch to bounds)
       </p>
       <div className="ns-row">
         <Button
           size="sm"
-          onClick={() => void copyPlacement(formatObsPlacementText(node.name, placement))}
+          onClick={() => void copyPlacement(formatObsPlacementText(node.name, placement, anchor))}
         >
           Copy all
         </Button>

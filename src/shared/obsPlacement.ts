@@ -53,15 +53,62 @@ export function formatObsNumber(n: number): string {
   return rounded.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
 }
 
-export function formatObsPlacementText(name: string, placement: ObsPlacement): string {
+export type ObsAlignment =
+  | 'top-left'
+  | 'top'
+  | 'top-right'
+  | 'left'
+  | 'center'
+  | 'right'
+  | 'bottom-left'
+  | 'bottom'
+  | 'bottom-right';
+
+export const OBS_ALIGNMENTS: { value: ObsAlignment; label: string; fx: number; fy: number }[] = [
+  { value: 'top-left', label: 'Top Left', fx: 0, fy: 0 },
+  { value: 'top', label: 'Top', fx: 0.5, fy: 0 },
+  { value: 'top-right', label: 'Top Right', fx: 1, fy: 0 },
+  { value: 'left', label: 'Left', fx: 0, fy: 0.5 },
+  { value: 'center', label: 'Center', fx: 0.5, fy: 0.5 },
+  { value: 'right', label: 'Right', fx: 1, fy: 0.5 },
+  { value: 'bottom-left', label: 'Bottom Left', fx: 0, fy: 1 },
+  { value: 'bottom', label: 'Bottom', fx: 0.5, fy: 1 },
+  { value: 'bottom-right', label: 'Bottom Right', fx: 1, fy: 1 },
+];
+
+export function isObsAlignment(value: unknown): value is ObsAlignment {
+  return OBS_ALIGNMENTS.some((entry) => entry.value === value);
+}
+
+function alignmentEntry(alignment: ObsAlignment): (typeof OBS_ALIGNMENTS)[number] {
+  return OBS_ALIGNMENTS.find((entry) => entry.value === alignment) ?? OBS_ALIGNMENTS[0]!;
+}
+
+export function alignedObsPosition(
+  placement: ObsPlacement,
+  alignment: ObsAlignment,
+): { x: number; y: number } {
+  const entry = alignmentEntry(alignment);
+  return {
+    x: round2(placement.x + placement.w * entry.fx),
+    y: round2(placement.y + placement.h * entry.fy),
+  };
+}
+
+export function formatObsPlacementText(
+  name: string,
+  placement: ObsPlacement,
+  alignment: ObsAlignment = 'top-left',
+): string {
+  const position = alignedObsPosition(placement, alignment);
   return [
     `OBS transform for "${name}"`,
-    `Position: X ${formatObsNumber(placement.x)}, Y ${formatObsNumber(placement.y)}`,
+    `Position: X ${formatObsNumber(position.x)}, Y ${formatObsNumber(position.y)}`,
     'Rotation: 0.00',
-    'Positional Alignment: Top Left',
+    `Positional Alignment: ${alignmentEntry(alignment).label}`,
     'Bounding Box Type: Stretch to bounds',
     'Alignment in Bounding Box: Center',
-    `Bounding Box Size: ${formatObsNumber(placement.w)} x ${formatObsNumber(placement.h)}`,
+    `Size / Bounding Box Size: ${formatObsNumber(placement.w)} x ${formatObsNumber(placement.h)}`,
     'Crop: Left 0, Right 0, Top 0, Bottom 0',
   ].join('\n');
 }

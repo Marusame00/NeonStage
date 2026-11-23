@@ -19,8 +19,8 @@ Get the latest build from the [Releases page](https://github.com/Marusame00/Neon
 
 | File | Use it when |
 |---|---|
-| `NeonStage-1.2.0-Setup.exe` | You want a normal install with Start menu and desktop shortcuts. |
-| `NeonStage-1.2.0-Portable.exe` | You want a single exe that runs without installing (data still goes to `%APPDATA%\NeonStage`). |
+| `NeonStage-1.3.0-Setup.exe` | You want a normal install with Start menu and desktop shortcuts. |
+| `NeonStage-1.3.0-Portable.exe` | You want a single exe that runs without installing (data still goes to `%APPDATA%\NeonStage`). |
 
 The builds are not code-signed, so Windows SmartScreen may show "Windows protected your PC". Click
 **More info → Run anyway**.
@@ -71,7 +71,7 @@ launches Electron. `Start NeonStage.bat` in the repository root does the same th
 ## Tests
 
 ```bat
-npm test          :: Vitest unit and integration tests (180 tests in 21 files)
+npm test          :: Vitest unit and integration tests (184 tests in 21 files)
 npm run selftest  :: Electron end-to-end self-test (14 checks, exit code 0 only if all pass)
 ```
 
