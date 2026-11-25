@@ -25,7 +25,7 @@ Plain text: `NeonStage is running.` plus the program output path. Useful as a qu
 `application/json`:
 
 ```json
-{ "ok": true, "app": "NeonStage", "version": "1.3.0" }
+{ "ok": true, "app": "NeonStage", "version": "1.3.1" }
 ```
 
 ### `GET /output/live`

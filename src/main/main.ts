@@ -34,6 +34,11 @@ const SCREENSHOT_TABS: Record<string, string> = {
   connections: 'settings=connections',
 };
 
+function windowIcon(): string | undefined {
+  const file = path.join(app.getAppPath(), 'build', 'icon.png');
+  return fs.existsSync(file) ? file : undefined;
+}
+
 function openInitialProject(
   store: ProjectStore,
   prefs: PrefsStore,
@@ -224,6 +229,7 @@ async function start(): Promise<void> {
       editorIndex: paths.editorIndex,
       appName: APP_NAME,
       isPackaged: app.isPackaged,
+      icon: windowIcon(),
     });
     mainWindow = win;
     win.webContents.on('console-message', (details) => {

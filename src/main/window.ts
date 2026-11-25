@@ -15,6 +15,7 @@ export interface WindowOptions {
   editorIndex: string;
   appName: string;
   isPackaged: boolean;
+  icon?: string;
 }
 
 export function createWindow(options: WindowOptions): BrowserWindow {
@@ -31,6 +32,7 @@ export function createWindow(options: WindowOptions): BrowserWindow {
     show: false,
     backgroundColor: '#0c0a14',
     title: options.appName,
+    ...(options.icon ? { icon: options.icon } : {}),
     titleBarStyle: 'hidden',
     titleBarOverlay: { color: '#0e0a18', symbolColor: '#d9d2f5', height: 36 },
     webPreferences: {
